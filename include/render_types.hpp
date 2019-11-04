@@ -3,16 +3,16 @@
 #ifndef __RENDER_TYPES__
     #define __RENDER_TYPES__
 
-    class Material {
-        public:
-            virtual temp_float wavelenPercent(const temp_float* const wavelength) = 0;
-            virtual Ray* reflectRay(const Ray* const inRay, const vec3* const norm) = 0;
-    };
-
     struct Ray {
         vec3 position;
         vec3 direction;
         temp_float wavelength;
+    };
+
+    class Material {
+        public:
+            virtual temp_float wavelenPercent(const temp_float* const wavelength) = 0;
+            virtual Ray* reflectRay(const Ray* const inRay, const vec3* const norm) = 0;
     };
 
     struct Node {
