@@ -1,8 +1,13 @@
-#define GLFW_EXPOSE_NATIVE_X11
-#define GLFW_EXPOSE_NATIVE_GLX
-
 #include "GL/glew.h"
-#include "GL/glxew.h"
+#ifdef __WIN32__
+    #include "GL/wglew.h"
+    #define GLFW_EXPOSE_NATIVE_WIN32
+    #define GLFW_EXPOSE_NATIVE_WGL
+#else
+    //#include "GL/glxew.h"
+    //#define GLFW_EXPOSE_NATIVE_X11
+    //#define GLFW_EXPOSE_NATIVE_GLX
+#endif
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
 

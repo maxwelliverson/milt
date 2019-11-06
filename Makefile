@@ -1,6 +1,6 @@
 CXX = g++
 INCLUDE = include
-LIBS = glfw GLEW GL
+LIBS = glfw GLEW #GL
 FLAGS = -march=native
 
 MAIN = main.cpp
