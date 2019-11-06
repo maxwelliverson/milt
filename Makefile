@@ -1,10 +1,10 @@
 CXX = g++
 INCLUDE = include
-LIBS = glfw GLEW #GL
-FLAGS = -march=native
+LIBS = glfw GLEW GL
+FLAGS = -march=native -g
 
 MAIN = main.cpp
-SRC =
+SRC = ext/imgui/imgui.cpp ext/imgui/imgui_impl_opengl3.cpp ext/imgui/imgui_impl_glfw.cpp ext/imgui/imgui_demo.cpp ext/imgui/imgui_draw.cpp ext/imgui/imgui_widgets.cpp
 
 OUT = main
 
