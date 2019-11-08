@@ -5,9 +5,9 @@
     #define GLFW_EXPOSE_NATIVE_WIN32
     #define GLFW_EXPOSE_NATIVE_WGL
 #else
-    //#include "GL/glxew.h"
-    //#define GLFW_EXPOSE_NATIVE_X11
-    //#define GLFW_EXPOSE_NATIVE_GLX
+    #include "GL/glxew.h"
+    #define GLFW_EXPOSE_NATIVE_X11
+    #define GLFW_EXPOSE_NATIVE_GLX
 #endif
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
@@ -59,9 +59,9 @@ int main(){
     GLFWmonitor *monitor;
     //const GLFWvidmode *videoMode;
 
-    const char* glsl_version = "#version 410";
+    const char* glsl_version = "#version 460";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 
     monitor = glfwGetPrimaryMonitor();
     //videoMode = glfwGetVideoMode(monitor);
@@ -75,7 +75,7 @@ int main(){
 
     printf((const char*)glGetString(GL_VERSION));
 
-    if(!GLEW_VERSION_4_1)
+    if(!GLEW_VERSION_4_6)
     {
         printf("\nGLEW 1.1: %d\n", GLEW_VERSION_1_1);
         printf("GLEW 1.2: %d\n", GLEW_VERSION_1_2);
@@ -96,7 +96,6 @@ int main(){
         printf("GLEW 4.5: %d\n", GLEW_VERSION_4_5);
         printf("GLEW 4.6: %d\n", GLEW_VERSION_4_6);
         return -1;
-
     }
 
     if(!window){
@@ -149,6 +148,25 @@ int main(){
             ImGui::Text("counter = %d", counter);
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::End();
+        }
+        //Testing Functionality
+        {
+            static int value = 0;
+            static float color[4]= {0.5f, 0.5f, 0.5f, 1.0f};
+            static ImVec4 col;
+
+            ImGui::Begin("Value Callback");
+
+            ImGui::ColorPicker4("Color Picker", color);
+            col = ImVec4(color[0], color[1], color[2], color[3]);
+
+            ImGui::DragInt4("DragInt4", &value);
+
+            for(int i = 0; i < value; ++i){
+                ImGui::TextColored(col, "Whoa Momma");
+            }
+
             ImGui::End();
         }
 
