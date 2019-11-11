@@ -3,8 +3,22 @@
 #include "rendercontext.hpp"
 #include "render_types.hpp"
 
-template<size_t... dims>
+template<typename T, size_t... dims>
 class Matrix {
+    private:
+        T* data;
+};
+
+class BackwardsTracing : Algorithm {
+    public:
+        size_t pixel_samples;
+        size_t light_samples_per_hit;
+        size_t bounce_lim;
+        int run(RenderContext* context){
+
+        }
+    private:
+
 
 };
 
