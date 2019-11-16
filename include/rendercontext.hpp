@@ -1,12 +1,11 @@
 #ifndef __CONTEXT__
     #define __CONTEXT__
 
-    //#include "renderscene.hpp"
     #include "algorithm.hpp"
     #include "internal_settings.hpp"
 
     class RenderContext {
-        //RenderScene scene;
+        RenderScene *scene;
         InternalSettings vars;
         ExternalSettings user_settings;
 

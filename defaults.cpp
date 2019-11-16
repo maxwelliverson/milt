@@ -31,7 +31,7 @@ class IversonMLT : public Algorithm {
         size_t pixel_samples;
         size_t roulette_start;
         int run(RenderContext* context){
-            
+            //
         }
     private:
         temp_float roulette(size_t count){
