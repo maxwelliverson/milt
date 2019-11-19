@@ -1,3 +1,6 @@
+#ifndef __MAIN__
+    #define __MAIN__
+
 #include "ext/imgui/imgui_user.h"
 #include "GL/glew.h"
 #ifdef __WIN32__
@@ -73,7 +76,7 @@ int main(){
     int err = glewInit();
     printf("%s\n", glewGetErrorString(err));
 
-    printf((const char*)glGetString(GL_VERSION));
+    printf("%s",(const char*)glGetString(GL_VERSION));
 
     if(!GLEW_VERSION_4_6)
     {
@@ -188,3 +191,5 @@ int main(){
 
 
 }
+
+#endif

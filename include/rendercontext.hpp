@@ -1,7 +1,6 @@
 #ifndef __CONTEXT__
     #define __CONTEXT__
 
-    #include "algorithm.hpp"
     #include "internal_settings.hpp"
 
     class RenderContext {

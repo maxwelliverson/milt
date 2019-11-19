@@ -1,9 +1,10 @@
-#include "math_base.hpp"
-#include "algorithm.hpp"
-#include <functional>
-
 #ifndef __SETTINGS__
     #define __SETTINGS__
+
+    #include "render_types.hpp"
+    #include "algorithm.hpp"
+    #include "math_base.hpp"
+    #include <functional>
 
     struct RenderSettings {
         size_t threads;

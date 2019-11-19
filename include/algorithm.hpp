@@ -1,7 +1,7 @@
 #ifndef __ALGORITHM__
     #define __ALGORITHM__
 
-    #include "rendercontext.hpp"
+    class RenderContext;
 
     class Algorithm {
         public:

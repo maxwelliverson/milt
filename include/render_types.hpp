@@ -1,7 +1,7 @@
-#include "math_base.hpp"
-
 #ifndef __RENDER_TYPES__
     #define __RENDER_TYPES__
+
+    #include "math_base.hpp"
 
     struct Ray {
         vec3 position;
