@@ -9,22 +9,43 @@ include_directories(ext/imgui/misc/cpp)
 include_directories(ext/imgui/misc/fonts)
 include_directories(ext/imgui/misc/freetype)
 include_directories(include)
+
+
+set(GLEW_PATH)
+set(GLFW_PATH)
+
 if(MINGW)
     include_directories(c:/msys64/mingw64/include)
     include_directories(c:/msys64/ming64/lib)
+    find_library(GLFW_PATH NAMES glfw glfw3 libglfw libglfw3 PATHS c:/msys64/mingw64/lib)
+    find_library(GLEW_PATH NAMES glew32 GLEW glew32s glew PATHS c:/msys64/mingw64/lib)
 elseif(UNIX)
     include_directories(/usr/include)
     include_directories(/usr/lib)
     include_directories(/usr/lib/x86_64-linux-gnu)
+    find_library(GLFW_PATH NAMES glfw glfw3 libglfw libglfw3 PATHS /usr/lib)
+    find_library(GLEW_PATH NAMES GLEW /usr/lib)
+else()
+    include_directories(c:/users/maxwe/downloads/glew-2.2.0/include)
+    include_directories(c:/Program\ Files\ \(x86\)/GLFW/include)
+    include_directories(c:/Program\ Files\ \(x86\)/GLFW/lib/GLFW)
+    #find_library(GLFW_PATH NAMES glfw3 libglfw libglfw3 PATHS c:/Program\ Files\ \(x86\)/GLFW/lib/GLFW)
+    #find_library(GLEW_PATH NAMES glew32s glew32s PATHS c:/users/maxwe/documents/glew-2.1.0-win32/glew-2.1.0/lib/Release/x64)
+    set(GLEW_VERBOSE 1)
+    set(CMAKE_GENERATOR_PLATFORM "x64")
+    #set(GLEW_USE_STATIC_LIBS 1)
+    set(glfw3_DIR "C:/Program Files (x86)/GLFW/lib/cmake/glfw3")
+    set(ENV{GLEW_ROOT} "C:/Users/maxwe/downloads/glew-2.2.0/")
+    find_package(glfw3 REQUIRED CONFIG )
+    find_package(GLEW REQUIRED )
 endif()
 
 #set(GLFW_PATH)
 #set(GLEW_PATH)
-find_library(GLFW_PATH NAMES glfw glfw3 libglfw libglfw3 PATHS /usr/lib)
-find_library(GLEW_PATH NAMES GLEW /usr/lib)
 find_library(GL_PATH NAMES OpenGL.so GL PATHS /usr/lib/x86_64-linux-gnu)
-
 find_package(OpenGL MODULE REQUIRED)
+
+message(STATUS CMAKE_LINK_LIBRARIES_SUFFIX = ${CMAKE_LINK_LIBRARY_SUFFIX})
 
 #set(CMAKE_MODULE_PATH c:/msys64/mingw64)
 #find_library(GLEW_PATH NAMES glew glew32s glew32 libglew libglew32 PATHS c:/msys64/mingw64/lib C:/Users/maxwe/Documents/glew-2.1.0-win32/glew-2.1.0/lib/Release/x64 REQUIRED)
@@ -62,7 +83,12 @@ add_executable(milt
     include/settings.hpp
     defaults.cpp
     main.cpp
-    settings.cpp)
+    settings.cpp include/neighbours.h include/node.h include/ray.h include/octree.h include/scene.h include/sample_scene.h milt_tests.cpp shaders.h)
 
-target_link_libraries(milt ${GLFW_PATH} ${GLEW_PATH} ${OPENGL_gl_LIBRARY})
-#target_link_libraries(milt ${GLFW_PATH} ${GLEW_PATH} ${GL_PATH})
+
+if(MSVC)
+   # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODE")
+    target_link_libraries(milt glfw GLEW::GLEW OpenGL::GL)
+else()
+    target_link_libraries(milt ${GLFW_PATH} ${GLEW_PATH} OpenGL::GL)
+endif()
