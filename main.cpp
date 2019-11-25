@@ -1,140 +1,50 @@
 #ifndef __MAIN__
     #define __MAIN__
 
-#include "ext/imgui/imgui_user.h"
-#include "GL/glew.h"
-#include "octree.h"
-#include <thread>
-#if defined(LINUX)
-    #include "GL/glxew.h"
-    #define GLFW_EXPOSE_NATIVE_X11
-    #define GLFW_EXPOSE_NATIVE_GLX
-#elseif defined(MSVC)
-    #include "GL/wglew.h"
-    #define GLFW_EXPOSE_NATIVE_WIN32
-    #define GLFW_EXPOSE_NATIVE_WGL
-#else
-    #include "GL/wglew.h"
-    #define GLFW_EXPOSE_NATIVE_WIN32
-    #define GLFW_EXPOSE_NATIVE_WGL
-    #define GLEW_DLL
-#endif
-#include "GLFW/glfw3.h"
-#include "GLFW/glfw3native.h"
-
-#include <cstdio>
-#include "shaders.h"
 
 
-using f_type = float;
+#include "milt.h"
 
-void glew_required_version(bool GLEW_VER){
-    if(!GLEW_VER){
-        printf("\nGLEW 1.1: %d\n", GLEW_VERSION_1_1);
-        printf("GLEW 1.2: %d\n", GLEW_VERSION_1_2);
-        printf("GLEW 1.3: %d\n", GLEW_VERSION_1_3);
-        printf("GLEW 1.4: %d\n", GLEW_VERSION_1_4);
-        printf("GLEW 1.5: %d\n", GLEW_VERSION_1_5);
-        printf("GLEW 2.0: %d\n", GLEW_VERSION_2_0);
-        printf("GLEW 2.1: %d\n", GLEW_VERSION_2_1);
-        printf("GLEW 3.0: %d\n", GLEW_VERSION_3_0);
-        printf("GLEW 3.1: %d\n", GLEW_VERSION_3_1);
-        printf("GLEW 3.2: %d\n", GLEW_VERSION_3_2);
-        printf("GLEW 3.3: %d\n", GLEW_VERSION_3_3);
-        printf("GLEW 4.0: %d\n", GLEW_VERSION_4_0);
-        printf("GLEW 4.1: %d\n", GLEW_VERSION_4_1);
-        printf("GLEW 4.2: %d\n", GLEW_VERSION_4_2);
-        printf("GLEW 4.3: %d\n", GLEW_VERSION_4_3);
-        printf("GLEW 4.4: %d\n", GLEW_VERSION_4_4);
-        printf("GLEW 4.5: %d\n", GLEW_VERSION_4_5);
-        printf("GLEW 4.6: %d\n", GLEW_VERSION_4_6);
-        glfwTerminate();
-        exit(-1);
-    }
-}
-
-template <typename T>
-bool node_optimization(Node<T>* nodes, int node_count);
-
-Node<f_type>* getRandomNodes(int n, f_type min, f_type max, int seed);
-
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods){
-    
-    switch(action){
-        case GLFW_PRESS:
-            switch(key){
-                case GLFW_KEY_ESCAPE:
-                glfwSetWindowShouldClose(window, GLFW_TRUE);
-                break;
-
-
-            } break;
-        case GLFW_RELEASE:
-            break;
-    }
-    return;
-}
-
-static void glfw_error_callback(int error, const char* description)
-{
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height){
-    glViewport(0, 0, width, height);
-}
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+bool firstMouse = true;
+f_type lastX;
+f_type lastY;
 
 int main(){
 
-    bool is_generating = false;
-    bool is_optimizing = false;
-    
-    if(!glfwInit()){
-        printf("GLFW Failed to Initialize\n");
-        return -1;
-    }
-    else{
-        printf("GLFW Successfully Initialized\n");
-    }
+
+    //GLFW INIT
+    //---------------------------------------------
+    glfwErrCheck(!glfwInit());
     glfwSetErrorCallback(glfw_error_callback);
-
-    GLFWwindow *window;
-    GLFWmonitor *monitor;
-    const GLFWvidmode *videoMode;
-
-    const char* glsl_version = "#version 460";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-
-    monitor = glfwGetPrimaryMonitor();
-    videoMode = glfwGetVideoMode(monitor);
-
+    auto monitor = glfwGetPrimaryMonitor();
+    auto videoMode = glfwGetVideoMode(monitor);
+    lastX = (f_type)(videoMode->width / 2);
+    lastY = (f_type)(videoMode->height / 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, REQ_GL_MAJOR);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, REQ_GL_MINOR);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
-
-    window = glfwCreateWindow(videoMode->width, videoMode->height, "Why won't you woooorrrkkk", nullptr, nullptr);
+    auto window = glfwCreateWindow(videoMode->width, videoMode->height, "Node Visualization", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSetKeyCallback(window, key_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwWindowCheck(window);
 
-
+    //GLEW INIT
+    //------------------------------------------------------
     int err = glewInit();
-    glew_required_version(GLEW_VERSION_4_4);
+    glew_required_version(GLEW_VERSION_4_6);
     printf("%s\n", glewGetErrorString(err));
     glViewport(0, 0, videoMode->width, videoMode->height);
+    printf("%s: %s\n","Using GL Version: ",(const char*)glGetString(GL_VERSION));
 
-    printf("%s: %s","GL Version: ",(const char*)glGetString(GL_VERSION));
 
-    if(!window){
-        printf("GLFW Window failed to initialize.");
-        glfwTerminate();
-        return -1;
-    }
-
+    //Node & GL Buffer Initialization
+    //-------------------------------------------------------
     int node_count = 10000;
     int new_node_count = node_count;
     int seed = 1234;
 
-    //Initialize Nodes and the glVertexBuffer
     Node<f_type>* nodes = getRandomNodes(node_count, 0, 1000, seed);
     GLuint VBO, VAO;
     glGenBuffers(1, &VBO);
@@ -142,13 +52,12 @@ int main(){
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(nodes), nodes, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(nodes) * node_count, nodes, GL_STREAM_DRAW);
 
 
-
-    //IMGUI Stuff
-    float scale_factor = 2.5;
-
+    //IMGUI Initialization
+    //---------------------------------------------------
+    float scale_factor = 1.75;
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -158,128 +67,78 @@ int main(){
     ImGui::GetStyle().ScaleAllSizes(scale_factor);
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init(glsl_version);
-
+    ImGui_ImplOpenGL3_Init(REQ_GLSL_VERSION);
 
     //Compile and Link shaders.
-    GLuint frag_shader, vert_shader, program;
-    frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    vert_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(frag_shader, 1, &frag_shader_node, NULL);
-    glShaderSource(vert_shader, 1, &vert_shader_node, NULL);
+    //----------------------------------------------------
+    Shader node_shader = Shader("shaders\\node.vert", "shaders\\node.frag");
+    node_shader.setVec4("NodeColor", 0.9f, 0.8f, 0.5f, 1.0f);
 
-    glCompileShader(vert_shader);
-    glCompileShader(frag_shader);
-
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vert_shader, 512, NULL, infoLog);
-        printf("%s %s\n", "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n", infoLog);
-    } else {
-        printf("%s\n", "AY CHIEF, WE GOOD WIT DE VERTS");
-    }
-    glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(frag_shader, 512, NULL, infoLog);
-        printf("%s %s\n", "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n", infoLog);
-    } else {
-        printf("%s\n", "AY BOSS, WE LIVIN WIT DE FRAGS");
-    }
-
-    program = glCreateProgram();
-    glAttachShader(program, frag_shader);
-    glAttachShader(program, vert_shader);
-    glLinkProgram(program);
-
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(program, 512, NULL, infoLog);
-        printf("%s %s\n", "ERROR::SHADER::PROGRAM::LINKING_FAILED\n", infoLog);
-    } else {
-        printf("%s\n",  "Sausage Links lol");
-    }
-
-    glDeleteShader(frag_shader);
-    glDeleteShader(vert_shader);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_TRUE, sizeof(Node<f_type>),(void*)nullptr);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Node<f_type>),(void*)nullptr);
     glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //Declare & initialize state variables
+    //----------------------------------------------------
+    int current_render_mode = 0;
+    int sdf_rounds = 10;
+    int opt_rounds = 6;
+    int post_sdf_rounds = 100;
+    int nearest_neighbours = 5;
+    bool is_generating = false;
+    bool is_optimizing = false;
 
-
-    bool show_demo_window = false;
-    bool show_metrics_window = false;
-
-
-    //glGet(GL_VIEWPORT);
 
     /*
      * MAIN RENDERING LOOP
      */
+    //-----------------------------------------------------
     while(!glfwWindowShouldClose(window)){
         glfwPollEvents();
 
+        //Create a new frame
+        //-------------------------
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        if(show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-
-        if(show_metrics_window)
-            ImGui::ShowMetricsWindow(&show_metrics_window);
-
+        //Color Callback window
+        //--------------------------
         {
-            static float f = 0.0f;
-            static int counter = 0;
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Metric Window", &show_metrics_window);
-            ImGui::SliderFloat("Scale Factor", &scale_factor, 1.0f, 4.0f);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            //ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
-        //Testing Functionality
-        {
-            static int value = 0;
-            static float color[4]= {0.5f, 0.5f, 0.5f, 1.0f};
-            static ImVec4 col;
+            static float bc[4]= {0.0f, 0.0f, 0.0f, 0.8f};
+            static float node_color[4] = {0.9f, 0.8f, 0.5f, 1.0f};
+            static float nc[4] = {0.9f, 0.8f, 0.5f, 1.0f};
 
             ImGui::Begin("Value Callback");
 
-            ImGui::ColorPicker4("Color Picker", color);
-            col = ImVec4(color[0], color[1], color[2], color[3]);
-            glClearColor(col.x, col.y, col.z, col.w);
-
-            ImGui::DragInt4("DragInt4", &value);
-
-            for(int i = 0; i < value; ++i){
-                ImGui::TextColored(col, "Whoa Momma");
+            if(ImGui::TreeNode("Background Color"))
+            {
+                ImGui::ColorPicker4("Color Picker", bc);
+                glClearColor(bc[0], bc[1], bc[2], bc[3]);
+                ImGui::TreePop();
             }
+            if(ImGui::TreeNode("Node Color"))
+            {
+                ImGui::ColorPicker4("Color Picker", node_color);
+                if (nc[0] != node_color[0] || nc[1] != node_color[1] || nc[2] != node_color[2] ||
+                    nc[3] != node_color[3]) {
+                    nc[0] = node_color[0];
+                    nc[1] = node_color[1];
+                    nc[2] = node_color[2];
+                    nc[3] = node_color[3];
+                    node_shader.setVec4("NodeColor", nc[0], nc[1], nc[2], nc[3]);
+                }
+                ImGui::TreePop();
+            }
+
+
+            ImGui::SliderFloat("Scale Factor", &scale_factor, 1.0f, 4.0f);
 
             ImGui::End();
         }
 
         {
+
             ImGui::Begin("Rendering");
             if(ImGui::Button("Generate Nodes")){
                 if(!is_generating && !is_optimizing){
@@ -296,31 +155,47 @@ int main(){
             ImGui::SameLine();
             if(ImGui::Button("Optimize Nodes")){
                 if(!is_generating && !is_optimizing){
-                    std::thread([nodes, node_count, &is_optimizing](){
+                    std::thread([nodes, node_count, opt_rounds, sdf_rounds, post_sdf_rounds, nearest_neighbours, &is_optimizing](){
                         is_optimizing = true;
-                        node_optimization(nodes, node_count);
+                        node_optimization(nodes, node_count, opt_rounds, sdf_rounds, post_sdf_rounds, nearest_neighbours);
                         is_optimizing = false;
                         }).detach();
                 }
             }
             ImGui::InputInt("Node Count", &new_node_count);
             ImGui::InputInt("Seed", &seed);
+            ImGui::InputInt("Sdf Rounds", &sdf_rounds);
+            ImGui::InputInt("Post-Sdf Rounds", &post_sdf_rounds);
+            ImGui::InputInt("Optimization Rounds", &opt_rounds);
+            ImGui::InputInt("Nearest Neighbours", &nearest_neighbours);
+            ImGui::Combo("Rendering Mode", &current_render_mode, "Points\0Lines\0Fill");
             ImGui::Text("%s: %d", "Current Node Count: ", node_count);
             ImGui::Text("%s", is_generating ? "Is Generating..." : (is_optimizing ? "Is Optimizing..." : ""));
 
-            //ImGuiContext
+            glPolygonMode(GL_FRONT_AND_BACK, (current_render_mode == 0 ? GL_POINT : (current_render_mode == 1 ? GL_LINE : GL_FILL)));
 
+            ImGui::End();
+
+        }
+
+        {
+            ImGui::Begin("Scene Editor");
             ImGui::End();
         }
 
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(nodes) * node_count, nodes, GL_STREAM_DRAW);
 
         io.FontGlobalScale = scale_factor;
         ImGui::Render();
         glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        glUseProgram(program);
+
+        node_shader.use();
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, node_count);
+
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
     }
 

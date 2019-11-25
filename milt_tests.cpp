@@ -118,7 +118,7 @@ const auto test_box_2 = new rounded_box<F_TYPE>(new Node<F_TYPE>(600, 100, 100),
 const int obj_count = 5;
 
 template <typename T>
-bool node_optimization(Node<T>* nodes, int node_num){
+bool node_optimization(Node<T>* nodes, int node_num, int rounds, int sdf_rounds, int post_sdf_rounds, int nearest_neighbours){
     auto oct = new Octree<T>(halfway, halfway, halfway, halfway);
 
     //std::default_random_engine rand(seed);
@@ -135,7 +135,7 @@ bool node_optimization(Node<T>* nodes, int node_num){
         nodes[i] += dist * dir;
     }
 
-    for(int j = 0; j < 5; ++j){
+    for(int j = 0; j < sdf_rounds; ++j){
         for(int i = 0; i < node_num; ++i){
             const auto dist = node_objects[i]->sdf(nodes + i);
             const auto dir = node_objects[i]->toObj(nodes + i);
@@ -145,11 +145,11 @@ bool node_optimization(Node<T>* nodes, int node_num){
 
     oct->addNodes(nodes, node_num);
 
-    for(int j = 0; j < 10; ++j){
+    for(int j = 0; j < rounds; ++j){
         for(int i = 0; i < node_num; ++i){
             oct->remove(nodes + i);
             int size_n = 0;
-            auto neighbours = oct->getNearestNeighbours(nodes + i, 5, size_n);
+            auto neighbours = oct->getNearestNeighbours(nodes + i, nearest_neighbours, size_n);
 
             auto force = Node<F_TYPE>();
             for(int k = 0; k < size_n; ++k){
@@ -157,9 +157,12 @@ bool node_optimization(Node<T>* nodes, int node_num){
             }
             nodes[i] += force;
 
-            const auto dist = node_objects[i]->sdf(nodes + i);
-            const auto dir = node_objects[i]->toObj(nodes + i);
-            nodes[i] += dist * dir;
+            for(int k = 0; k < post_sdf_rounds; ++k) {
+                const auto dist = node_objects[i]->sdf(nodes + i);
+                const auto dir = node_objects[i]->toObj(nodes + i);
+                nodes[i] += dist * dir;
+            }
+
             oct->addNode(nodes + i);
             delete[] neighbours;
         }
@@ -174,7 +177,7 @@ bool node_optimization(Node<T>* nodes, int node_num){
 
 bool node_optimization() {
     Node<F_TYPE>* nodes = getRandomNodes(node_count, minval, maxval, new_seed);
-    bool result = node_optimization(nodes, node_count);
+    bool result = node_optimization(nodes, node_count, 10, 5, 1, 5);
     delete[] nodes;
     return result;
 }

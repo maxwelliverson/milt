@@ -71,12 +71,7 @@ Node<T> sphere<T>::toObj(const Node<T>* node){
     normalize(&new_n);
     return new_n;
 }
-/*
-template <typename T>
-T sphere<T>::sdf(Node<T> *n, Node<T> *dir) {
 
-}
-*/
 template <typename T>
 T rounded_box<T>::sdf(const Node<T>* node) {
     Node<T> tmp = *node - center;

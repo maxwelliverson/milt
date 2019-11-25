@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 project(milt)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 include_directories(ext/imgui)
 include_directories(ext/imgui/misc)
@@ -26,7 +26,7 @@ elseif(UNIX)
     find_library(GLFW_PATH NAMES glfw glfw3 libglfw libglfw3 PATHS /usr/lib)
     find_library(GLEW_PATH NAMES GLEW /usr/lib)
 else()
-    include_directories(c:/users/maxwe/downloads/glew-2.2.0/include)
+    #include_directories(c:/users/maxwe/downloads/glew-2.2.0/include)
     include_directories(c:/Program\ Files\ \(x86\)/GLFW/include)
     include_directories(c:/Program\ Files\ \(x86\)/GLFW/lib/GLFW)
     #find_library(GLFW_PATH NAMES glfw3 libglfw libglfw3 PATHS c:/Program\ Files\ \(x86\)/GLFW/lib/GLFW)
@@ -35,7 +35,7 @@ else()
     set(CMAKE_GENERATOR_PLATFORM "x64")
     #set(GLEW_USE_STATIC_LIBS 1)
     set(glfw3_DIR "C:/Program Files (x86)/GLFW/lib/cmake/glfw3")
-    set(ENV{GLEW_ROOT} "C:/Users/maxwe/downloads/glew-2.2.0/")
+    #set(ENV{GLEW_ROOT} "C:/Users/maxwe/downloads/glew-2.2.0/")
     find_package(glfw3 REQUIRED CONFIG )
     find_package(GLEW REQUIRED )
 endif()
@@ -82,8 +82,10 @@ add_executable(milt
     include/rendercontext.hpp
     include/settings.hpp
     defaults.cpp
+    shaders/node.frag
+    shaders/node.vert
     main.cpp
-    settings.cpp include/neighbours.h include/node.h include/ray.h include/octree.h include/scene.h include/sample_scene.h milt_tests.cpp shaders.h)
+    settings.cpp include/neighbours.h include/node.h include/ray.h include/octree.h include/scene.h include/sample_scene.h milt_tests.cpp ext/camera.h ext/shader.h include/milt.h include/gl_version.h)
 
 
 if(MSVC)
