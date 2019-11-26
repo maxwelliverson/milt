@@ -8,7 +8,7 @@
 #define concat(arg, ...) arg##concat(__VA_ARGS__)
 #define glsl_v concat(REQ_GL_MAJOR, REQ_GL_MINOR, 0)
 #define REQ_GL_MAJOR 4
-#define REQ_GL_MINOR 6
-#define REQ_GLSL_VERSION "#version 460"
+#define REQ_GL_MINOR 4
+#define REQ_GLSL_VERSION "#version 440"
 
 #endif //MILT_GL_VERSION_H

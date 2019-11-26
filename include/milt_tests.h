@@ -9,13 +9,12 @@
 #include "node.h"
 #include "octree.h"
 
-#define F_TYPE float
-
-Node<F_TYPE>* getRandomNodes(int n, F_TYPE min, F_TYPE max, int seed) {
+template <typename T>
+Node<T>* getRandomNodes(int n, T min, T max, int seed) {
     std::default_random_engine rand(seed);
-    std::uniform_real_distribution<F_TYPE> dist(min, max);
+    std::uniform_real_distribution<T> dist(min, max);
 
-    auto nodes = new Node<F_TYPE>[n];
+    auto nodes = new Node<T>[n];
 
     for (int i = 0; i < n; ++i) {
         nodes[i].x = dist(rand);
@@ -26,7 +25,7 @@ Node<F_TYPE>* getRandomNodes(int n, F_TYPE min, F_TYPE max, int seed) {
     return nodes;
 }
 
-
+/*
 using namespace std::chrono;
 using std::cout;
 using std::cin;
@@ -103,81 +102,52 @@ bool timings_run() {
     delete oct;
     return true;
 }
-
-
-const int node_count = 40000;
-const int new_seed = 1234;
+*/
 #include "sample_scene.h"
 
-const auto center_point = new Node<F_TYPE>(halfway, halfway, halfway);
-const auto test_bounding_cube = new cube<F_TYPE>(center_point, halfway);
-const auto test_sphere_1 = new sphere<F_TYPE>(new Node<F_TYPE>(150, 300, 700), 100);
-const auto test_sphere_2 = new sphere<F_TYPE>(new Node<F_TYPE>(800, 500, 850), 150);
-const auto test_box_1 = new rounded_box<F_TYPE>(new Node<F_TYPE>(400, 800, 300), new Node<F_TYPE>(250, 100, 200), 30);
-const auto test_box_2 = new rounded_box<F_TYPE>(new Node<F_TYPE>(600, 100, 100), new Node<F_TYPE>(70, 100, 150), 10);
-const int obj_count = 5;
 
 template <typename T>
-bool node_optimization(Node<T>* nodes, int node_num, int rounds, int sdf_rounds, int post_sdf_rounds, int nearest_neighbours){
-    auto oct = new Octree<T>(halfway, halfway, halfway, halfway);
-
-    //std::default_random_engine rand(seed);
-    auto node_objects = new scene_obj<F_TYPE>*[node_num];
-
-    auto example_scene = new sample_scene<F_TYPE>();
-    scene_obj<F_TYPE> *objects[obj_count] = {test_bounding_cube, test_sphere_1, test_sphere_2, test_box_1, test_box_2};
-    example_scene->objs = objects;
-    example_scene->obj_count = obj_count;
+bool node_optimization(sample_scene<T>* active_scene, Octree<T>* oct, Node<T>* nodes, int node_num, int rounds, int sdf_rounds, int post_sdf_rounds, int nearest_neighbours){
+    auto node_objects = new scene_obj<T>*[node_num];
 
     for(int i = 0; i < node_num; ++i){
-        auto dist = example_scene->sdf(nodes + i, node_objects[i]);
+        auto dist = active_scene->sdf(nodes + i, node_objects[i]);
         auto dir = node_objects[i]->toObj(nodes + i);
         nodes[i] += dist * dir;
     }
 
     for(int j = 0; j < sdf_rounds; ++j){
         for(int i = 0; i < node_num; ++i){
-            const auto dist = node_objects[i]->sdf(nodes + i);
-            const auto dir = node_objects[i]->toObj(nodes + i);
+            auto dist = node_objects[i]->sdf(nodes + i);
+            auto dir = node_objects[i]->toObj(nodes + i);
             nodes[i] += dist * dir;
         }
     }
 
-    oct->addNodes(nodes, node_num);
-
     for(int j = 0; j < rounds; ++j){
         for(int i = 0; i < node_num; ++i){
-            oct->remove(nodes + i);
-            int size_n = 0;
-            auto neighbours = oct->getNearestNeighbours(nodes + i, nearest_neighbours, size_n);
+			if (oct->remove(nodes + i)) {
+				int size_n = 0;
+				auto neighbours = oct->getNearestNeighbours(nodes + i, nearest_neighbours, size_n);
 
-            auto force = Node<F_TYPE>();
-            for(int k = 0; k < size_n; ++k){
-                force += (nodes[i] - neighbours[k]) * (1 / dist_squared(nodes + i, neighbours[k]));
-            }
-            nodes[i] += force;
+				auto force = Node<T>();
+				for (int k = 0; k < size_n; ++k) {
+					force += (nodes[i] - neighbours[k]) * (1 / dist_squared(nodes + i, neighbours[k]));
+				}
+				nodes[i] += force;
 
-            for(int k = 0; k < post_sdf_rounds; ++k) {
-                const auto dist = node_objects[i]->sdf(nodes + i);
-                const auto dir = node_objects[i]->toObj(nodes + i);
-                nodes[i] += dist * dir;
-            }
+				for (int k = 0; k < post_sdf_rounds; ++k) {
+					const auto dist = node_objects[i]->sdf(nodes + i);
+					const auto dir = node_objects[i]->toObj(nodes + i);
+					nodes[i] += dist * dir;
+				}
 
-            oct->addNode(nodes + i);
-            delete[] neighbours;
+				oct->addNode(nodes + i);
+				delete[] neighbours;
+			}
         }
     }
 
-    delete oct;
-    delete example_scene;
     delete[] node_objects;
     return true;
-}
-
-
-bool node_optimization() {
-    Node<F_TYPE>* nodes = getRandomNodes(node_count, minval, maxval, new_seed);
-    bool result = node_optimization(nodes, node_count, 10, 5, 1, 5);
-    delete[] nodes;
-    return result;
 }

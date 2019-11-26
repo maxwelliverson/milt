@@ -34,6 +34,8 @@ using f_type = float;
 #include "ext/camera.h"
 #include "ext/shader.h"
 #include "gl_version.h"
+#include <exception>
+#include "milt_tests.h"
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods){
 
@@ -102,10 +104,5 @@ void glfwWindowCheck(GLFWwindow* window){
         exit(-1);
     }
 }
-
-template <typename T>
-bool node_optimization(Node<T>* nodes, int node_count, int rounds, int sdf_rounds, int post_sdf_rounds, int nearest_neighbours);
-
-Node<f_type>* getRandomNodes(int n, f_type min, f_type max, int seed);
 
 #endif //MILT_H

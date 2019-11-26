@@ -30,7 +30,7 @@ public:
 
     void addNode(Node<T>* val);
     void addNodes(Node<T>* val, int n);
-    void remove(Node<T>* val);
+    bool remove(Node<T>* val);
     Node<T>** getNearestNeighbours(Node<T>* ref_node, int k, int& n);
     Node<T>** getNodes(int &n);
     bool isCorrectBox(Node<T>* node);
@@ -107,9 +107,9 @@ void Octree<T, N>::addNodes(Node<T>* vals, int n) {
 }
 
 template <typename T, int N>
-void Octree<T, N>::remove(Node<T>* val) {
+bool Octree<T, N>::remove(Node<T>* val) {
     if (node_count > overflow_lim) {
-        branches[(int)get_index(val)]->remove(val);
+        bool success = branches[(int)get_index(val)]->remove(val);
         if (node_count == overflow_lim) {
             int k;
             values = getNodes(k);
@@ -119,19 +119,21 @@ void Octree<T, N>::remove(Node<T>* val) {
             delete[] branches;
             branches = nullptr;
         }
+		return success;
     }
     else {
-        int i;
+        unsigned i;
         for (i = 0; i < node_count; ++i) {
             if (values[i] == val)
                 break;
         }
         if (i == node_count)
-            return;
+            return false;
 
         values[i] = values[node_count - 1];
         values[node_count - 1] = nullptr;
         node_count -= 1;
+		return true;
     }
 }
 
@@ -197,7 +199,7 @@ Node<T>** Octree<T, N>::getNearestNeighbours(Node<T>* ref_node, int k, int& n) {
     auto indices = NEIGHBOURS[index];
     for (int ind = 0; ind < 19; ++ind) {
         auto relative_node = indices[ind];
-        if (((z + relative_node[0] >> depth) & 0xfffe) != 0 || ((y + relative_node[1] >> depth) & 0xfffe) != 0 || ((x + relative_node[2] >> depth) & 0xfffe) != 0) {
+        if ((((z + relative_node[0]) >> depth) & 0xfffe) != 0 || (((y + relative_node[1]) >> depth) & 0xfffe) != 0 || (((x + relative_node[2]) >> depth) & 0xfffe) != 0) {
             continue;
         }
         current_branch->gatherNodes(working_arr, z + relative_node[0], y + relative_node[1], x + relative_node[2],
@@ -248,14 +250,18 @@ bool Octree<T, N>::isCorrectBox(Node<T>* node) {
 
 template <typename T, int N>
 char Octree<T, N>::get_index(Node<T>* val) {
-    return (val->x >= center->x) |
-           ((val->y >= center->y) << 1) |
-           ((val->z >= center->z) << 2);
+	char ind = (val->x >= center->x) |
+		((val->y >= center->y) << 1) |
+		((val->z >= center->z) << 2);
+	if (int(val->x) == 169 && int(val->y) == 391) {
+		printf("New Index: %d\n", ind);
+	}
+	return ind;
 }
 
 template <typename T, int N>
 void Octree<T, N>::trickle_down(Node<T>* val) {
-    char i = get_index(val);
+    char i = 0x7 & get_index(val);
     branches[i]->addNode(val);
 }
 
@@ -265,10 +271,11 @@ void Octree<T, N>::subdivide() {
     for (int i = 0; i < 8; i++) {
         branches[i] = new Octree<T, N>(center, sidelength, this, i);
     }
-    for (int i = 0; i < node_count; i++) {
+    for (unsigned i = 0; i < node_count; i++) {
         trickle_down(values[i]);
     }
     delete[] values;
+	values = nullptr;
 }
 
 template <typename T, int N>
@@ -308,7 +315,7 @@ void Octree<T, N>::addAllInBranch(Octree<T, N>* oct, Node<T>** nodes, Node<T>* r
         }
     }
     else {
-        for (int i = 0; i < oct->node_count; i++)
+        for (unsigned i = 0; i < oct->node_count; i++)
             addToArr(nodes, oct->values[i], ref, max_dist, max_ind, n, curr_n);
     }
 }
@@ -328,7 +335,7 @@ void Octree<T, N>::gatherNodes(Node<T>** nodes, int z, int y, int x, int depth, 
     const bool zbit = 0x01U & (z >> depth);
     const bool ybit = 0x01U & (y >> depth);
     const bool xbit = 0x01U & (x >> depth);
-    int next_index = (zbit << 2) | (ybit << 1) | xbit;
+    int next_index = (zbit << 2) | (ybit << 1) | (xbit << 0);
     branches[next_index]->gatherNodes(nodes, z, y, x, depth - 1, ref, max_dist, max_ind, n, curr_n, searched, searched_n);
 }
 

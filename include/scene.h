@@ -13,6 +13,8 @@ class scene_obj {
 public:
     virtual T sdf(const Node<T>* n) = 0;
     virtual Node<T> toObj(const Node<T>* n) = 0;
+    virtual const char* name() = 0;
+    virtual ~scene_obj() = default;
     //virtual T sdf(Node<T>* n, Node<T>* dir) = 0;
 };
 
