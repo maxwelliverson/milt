@@ -35,7 +35,16 @@ using f_type = float;
 #include "ext/shader.h"
 #include "gl_version.h"
 #include <exception>
+#include <imgui.h>
 #include "milt_tests.h"
+
+int milt_width;
+int milt_height;
+bool move_forwards = false;
+bool move_backwards = false;
+bool move_left = false;
+bool move_right = false;
+bool can_look = false;
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods){
 
@@ -46,9 +55,43 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
                     glfwSetWindowShouldClose(window, GLFW_TRUE);
                     break;
 
-
+                case GLFW_KEY_W:
+                case GLFW_KEY_UP:
+                    move_forwards = true;
+                    break;
+                case GLFW_KEY_S:
+                case GLFW_KEY_DOWN:
+                    move_backwards = true;
+                    break;
+                case GLFW_KEY_A:
+                case GLFW_KEY_LEFT:
+                    move_left = true;
+                    break;
+                case GLFW_KEY_D:
+                case GLFW_KEY_RIGHT:
+                    move_right = true;
+                    break;
             } break;
         case GLFW_RELEASE:
+            switch(key){
+
+                case GLFW_KEY_W:
+                case GLFW_KEY_UP:
+                    move_forwards = false;
+                    break;
+                case GLFW_KEY_S:
+                case GLFW_KEY_DOWN:
+                    move_backwards = false;
+                    break;
+                case GLFW_KEY_A:
+                case GLFW_KEY_LEFT:
+                    move_left = false;
+                    break;
+                case GLFW_KEY_D:
+                case GLFW_KEY_RIGHT:
+                    move_right = false;
+                    break;
+            }
             break;
     }
 }
@@ -60,6 +103,16 @@ static void glfw_error_callback(int error, const char* description)
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods){
+    if(button == GLFW_MOUSE_BUTTON_1){
+        can_look = (action == GLFW_PRESS);
+    }
+}
+
+void scrollwheel_callback(GLFWwindow* window, double xoff, double yoff){
+    camera.ProcessMouseScroll(yoff);
 }
 
 void glew_required_version(bool GLEW_VER){
@@ -102,6 +155,23 @@ void glfwWindowCheck(GLFWwindow* window){
         printf("GLFW Window failed to initialize.");
         glfwTerminate();
         exit(-1);
+    }
+}
+
+void moveCamera(){
+    ImVec2 offset;
+
+    if(move_forwards)
+        camera.ProcessKeyboard(FORWARD, ImGui::GetIO().DeltaTime);
+    if(move_backwards)
+        camera.ProcessKeyboard(BACKWARD, ImGui::GetIO().DeltaTime);
+    if(move_left)
+        camera.ProcessKeyboard(LEFT, ImGui::GetIO().DeltaTime);
+    if(move_right)
+        camera.ProcessKeyboard(RIGHT, ImGui::GetIO().DeltaTime);
+    if(can_look) {
+        offset = ImGui::GetIO().MouseDelta;
+        camera.ProcessMouseMovement(-offset.x, offset.y);
     }
 }
 

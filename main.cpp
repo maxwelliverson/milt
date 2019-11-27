@@ -2,6 +2,8 @@
     #define __MAIN__
 
 
+#include "ext/camera.h"
+Camera camera(glm::vec3(-500.0f, -200.0f, 800.0f));
 
 #include "milt.h"
 
@@ -9,10 +11,6 @@
 #define sphere_t 1
 #define box_t 2
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-bool firstMouse = true;
-f_type lastX;
-f_type lastY;
 
 int main(){
     try {
@@ -29,15 +27,18 @@ int main(){
         glfwSetErrorCallback(glfw_error_callback);
         auto monitor = glfwGetPrimaryMonitor();
         auto videoMode = glfwGetVideoMode(monitor);
-        lastX = (f_type) (videoMode->width / 2);
-        lastY = (f_type) (videoMode->height / 2);
+        milt_width = videoMode->width;
+        milt_height = videoMode->height;
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, REQ_GL_MAJOR);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, REQ_GL_MINOR);
         glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
-        auto window = glfwCreateWindow(videoMode->width, videoMode->height, "Node Visualization", nullptr, nullptr);
+        auto window = glfwCreateWindow(videoMode->width, videoMode->height, "Node Visualization", monitor, nullptr);
         glfwMakeContextCurrent(window);
         glfwSetKeyCallback(window, key_callback);
         glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+        glfwSetMouseButtonCallback(window, mouse_button_callback);
+        //glfwSetCursorPosCallback(window, mouse_callback);
+        glfwSetScrollCallback(window, scrollwheel_callback);
         glfwWindowCheck(window);
 
         //GLEW INIT
@@ -51,7 +52,7 @@ int main(){
 
         //Node & GL Buffer Initialization
         //-------------------------------------------------------
-        int node_count = 10000;
+        int node_count = 32000;
         int new_node_count = node_count;
         int seed = 1234;
 
@@ -67,13 +68,13 @@ int main(){
 
         //IMGUI Initialization
         //---------------------------------------------------
-        float scale_factor = 1.75;
+        float scale_factor = 2.25;
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO &io = ImGui::GetIO();
         io.FontAllowUserScaling = true;
         io.FontGlobalScale = scale_factor;
-        ImGui::StyleColorsLight();
+        ImGui::StyleColorsDark();
         ImGui::GetStyle().ScaleAllSizes(scale_factor);
 
         ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -82,6 +83,7 @@ int main(){
         //Compile and Link shaders.
         //----------------------------------------------------
         Shader node_shader = Shader("shaders\\node.vert", "shaders\\node.frag");
+        node_shader.use();
         node_shader.setVec4("NodeColor", 0.9f, 0.8f, 0.5f, 1.0f);
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Node<f_type>), (void *) nullptr);
@@ -204,8 +206,8 @@ int main(){
 
             {
                 static int type_id[40] = {cube_t, sphere_t, sphere_t, box_t, box_t};
-                static bool p_open = false;
                 static int obj_type;
+                static bool p_open = false;
                 static bool rm_obj = false;
 
                 ImGui::Begin("Scene Editor");
@@ -290,11 +292,20 @@ int main(){
                 }
 
                 ImGui::NextColumn();
-                if (ImGui::Button("Create New...")) {
+
+                if(ImGui::Button("Create New...")){
                     p_open = true;
-                    ImGui::BeginPopupModal("Object Types", &p_open);
+                }
+
+                if(p_open)
+                {
+                    if(!ImGui::IsPopupOpen("Create"))
+                        ImGui::OpenPopup("Create");
+                    if(ImGui::BeginPopupModal("Create"))
+                    {
                         ImGui::Combo("", &obj_type, "Cube\0Sphere\0Box");
-                        if (ImGui::Button("Create")) {
+                        if (ImGui::Button("Create"))
+                        {
                             //p_open = false;
                             // type_id[active_scene->obj_count] = obj_type;
                             switch (obj_type) {
@@ -311,12 +322,17 @@ int main(){
                                     printf("The Object Creation Interface attempted to create an undefined object.");
                                     glfwSetWindowShouldClose(window, GLFW_TRUE);
                             }
+                            ImGui::CloseCurrentPopup();
+                            p_open = false;
+                        }
+                        ImGui::EndPopup();
                     }
                 }
-                //ImGui::BeginPopup("Create a New Object");
 				ImGui::PopStyleVar();
                 ImGui::End();
             }
+
+            moveCamera();
 
             glBindVertexArray(VAO);
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -327,7 +343,12 @@ int main(){
             glClear(GL_COLOR_BUFFER_BIT);
 
             node_shader.use();
-            glBindVertexArray(VAO);
+
+            glm::mat4 projection_mat = glm::perspective(glm::radians(camera.Zoom), (f_type)milt_width / (f_type)milt_height, 0.05f, 2000.0f);
+            glm::mat4 view_mat = camera.GetViewMatrix();
+            node_shader.setMat4("projection", projection_mat);
+            node_shader.setMat4("view", view_mat);
+
             glDrawArrays(GL_TRIANGLES, 0, node_count);
 
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

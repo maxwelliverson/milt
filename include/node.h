@@ -5,7 +5,12 @@
 #ifndef MILT_NODE_H
 #define MILT_NODE_H
 
-#pragma once
+#ifdef DEBUG
+#define NODE_DEBUG(...) __VA_ARGS__
+#else
+#define NODE_DEBUG(...)
+#endif
+
 #include <cmath>
 
 template <typename T>

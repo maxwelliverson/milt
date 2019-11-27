@@ -6,6 +6,8 @@
 #define MILT_OCTREE_H
 
 #include "node.h"
+#include <atomic>
+using std::atomic;
 
 template <typename T, int N = 20>
 class Octree
@@ -79,7 +81,6 @@ Octree<T, N>::~Octree() {
             delete branches[i];
         }
         delete[] branches;
-
     }
     else {
         delete[] values;
@@ -253,9 +254,9 @@ char Octree<T, N>::get_index(Node<T>* val) {
 	char ind = (val->x >= center->x) |
 		((val->y >= center->y) << 1) |
 		((val->z >= center->z) << 2);
-	if (int(val->x) == 169 && int(val->y) == 391) {
+	/*if (int(val->x) == 169 && int(val->y) == 391) {
 		printf("New Index: %d\n", ind);
-	}
+	}*/
 	return ind;
 }
 

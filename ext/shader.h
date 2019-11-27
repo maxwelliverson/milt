@@ -5,6 +5,12 @@
 #ifndef MILT_SHADER_H
 #define MILT_SHADER_H
 
+#ifdef MSVC
+#define ROOT_DIR "..\\..\\.."
+#else
+#define ROOT_DIR ".."
+#endif
+
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
@@ -43,7 +49,7 @@ public:
         try
         {
             //Ensure that the files can be read properly
-            current_path("..");
+            current_path(ROOT_DIR);
             vShaderFile.imbue(std::locale("en_US.UTF8"));
             fShaderFile.imbue(std::locale("en_US.UTF8"));
 
