@@ -3,6 +3,7 @@ project(milt)
 
 set(CMAKE_CXX_STANDARD 17)
 
+include_directories(ext)
 include_directories(ext/imgui)
 include_directories(ext/imgui/misc)
 include_directories(ext/imgui/misc/cpp)
@@ -19,12 +20,13 @@ if(MINGW)
     include_directories(c:/msys64/ming64/lib)
     find_library(GLFW_PATH NAMES glfw glfw3 libglfw libglfw3 PATHS c:/msys64/mingw64/lib)
     find_library(GLEW_PATH NAMES glew32 GLEW glew32s glew PATHS c:/msys64/mingw64/lib)
-elseif(UNIX)
+elseif(CMAKE_SYSTEM_NAME MATCHES Linux)
     include_directories(/usr/include)
     include_directories(/usr/lib)
     include_directories(/usr/lib/x86_64-linux-gnu)
     find_library(GLFW_PATH NAMES glfw glfw3 libglfw libglfw3 PATHS /usr/lib)
     find_library(GLEW_PATH NAMES GLEW /usr/lib)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -march=native")
 else()
     include_directories(c:/Program\ Files\ \(x86\)/GLFW/include)
     include_directories(c:/Program\ Files\ \(x86\)/GLFW/lib/GLFW)
@@ -41,7 +43,7 @@ endif()
 find_library(GL_PATH NAMES OpenGL.so GL PATHS /usr/lib/x86_64-linux-gnu)
 find_package(OpenGL MODULE REQUIRED)
 
-message(STATUS CMAKE_LINK_LIBRARIES_SUFFIX = ${CMAKE_LINK_LIBRARY_SUFFIX})
+message(STATUS CMAKE_SYSTEM_NAME = ${CMAKE_SYSTEM_NAME})
 
 #set(CMAKE_MODULE_PATH c:/msys64/mingw64)
 #find_library(GLEW_PATH NAMES glew glew32s glew32 libglew libglew32 PATHS c:/msys64/mingw64/lib C:/Users/maxwe/Documents/glew-2.1.0-win32/glew-2.1.0/lib/Release/x64 REQUIRED)
@@ -81,7 +83,7 @@ add_executable(milt
     shaders/node.frag
     shaders/node.vert
     main.cpp
-    settings.cpp include/neighbours.h include/node.h include/ray.h include/octree.h include/scene.h include/sample_scene.h include/milt_tests.h ext/camera.h ext/shader.h include/milt.h include/gl_version.h)
+    settings.cpp include/neighbours.h include/node.h include/ray.h include/octree.h include/scene.h include/sample_scene.h include/milt_tests.h ext/camera.h ext/shader.h include/milt.h include/gl_version.h include/milt_macro.h)
 
 
 if(MSVC)

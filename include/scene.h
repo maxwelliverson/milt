@@ -11,6 +11,7 @@
 template <typename T>
 class scene_obj {
 public:
+    virtual T sdf(Node<T> n) = 0;
     virtual T sdf(const Node<T>* n) = 0;
     virtual Node<T> toObj(const Node<T>* n) = 0;
     virtual const char* name() = 0;

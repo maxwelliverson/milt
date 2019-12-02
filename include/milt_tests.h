@@ -104,10 +104,12 @@ bool timings_run() {
 }
 */
 #include "sample_scene.h"
+#include "milt_macro.h"
 
 
 template <typename T>
-bool node_optimization(sample_scene<T>* active_scene, Octree<T>* oct, Node<T>* nodes, int node_num, int rounds, int sdf_rounds, int post_sdf_rounds, int nearest_neighbours){
+bool node_optimization(sample_scene<T> *active_scene, Octree<T> *oct, Node<T> *nodes, int node_num, int rounds,
+                       int sdf_rounds, int post_sdf_rounds, int nearest_neighbours, int force_factor) {
     auto node_objects = new scene_obj<T>*[node_num];
 
     for(int i = 0; i < node_num; ++i){
@@ -115,25 +117,20 @@ bool node_optimization(sample_scene<T>* active_scene, Octree<T>* oct, Node<T>* n
         auto dist = active_scene->sdf(nodes + i, node_objects[i]);
         auto dir = node_objects[i]->toObj(nodes + i);
         nodes[i] += dist * dir;
-        oct->addNode(nodes + i);
     }
 
     for(int j = 0; j < sdf_rounds; ++j){
         for(int i = 0; i < node_num; ++i){
-            oct->remove(nodes + i);
             auto dist = node_objects[i]->sdf(nodes + i);
             auto dir = node_objects[i]->toObj(nodes + i);
             nodes[i] += dist * dir;
-            oct->addNode(nodes + i);
         }
     }
 
+    oct->addNodes(nodes, node_num);
+
     for(int j = 0; j < rounds; ++j){
-        int error_count = 0;
-        int correct_box = 0;
         for(int i = 0; i < node_num; ++i){
-            if(oct->isCorrectBox(nodes + i))
-                ++correct_box;
 
 			if (oct->remove(nodes + i)) {
 				int size_n = 0;
@@ -141,7 +138,8 @@ bool node_optimization(sample_scene<T>* active_scene, Octree<T>* oct, Node<T>* n
 
 				auto force = Node<T>();
 				for (int k = 0; k < size_n; ++k) {
-					force += (nodes[i] - neighbours[k]) * (1 / dist_squared(nodes + i, neighbours[k]));
+				    auto dir = nodes[i] - neighbours[k];
+					force += (force_factor / (dir.norm_squared() + 0.0001f)) * dir;
 				}
 				nodes[i] += force;
 
@@ -154,12 +152,9 @@ bool node_optimization(sample_scene<T>* active_scene, Octree<T>* oct, Node<T>* n
 				oct->addNode(nodes + i);
 				delete[] neighbours;
 			} else {
-			    ++error_count;
+			    MILT_ERR("Node was unsuccessfully removed from Octree.");
 			}
         }
-        printf("Round %d: Remove Failed %d\nRound %d: Total Correct %d\n", j, error_count, j, correct_box);
-        error_count = 0;
-        correct_box = 0;
     }
 
     delete[] node_objects;

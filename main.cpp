@@ -1,6 +1,8 @@
 #ifndef __MAIN__
     #define __MAIN__
 
+#define GLM_FORCE_MESSAGES 1
+#define GLM_FORCE_SWIZZLE 1
 
 #include "ext/camera.h"
 Camera camera(glm::vec3(-500.0f, -200.0f, 800.0f));
@@ -63,7 +65,7 @@ int main(){
         glGenVertexArrays(1, &VAO);
         glBindVertexArray(VAO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(nodes) * node_count, nodes, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(*nodes) * node_count, nodes, GL_STREAM_DRAW);
 
 
         //IMGUI Initialization
@@ -82,7 +84,8 @@ int main(){
 
         //Compile and Link shaders.
         //----------------------------------------------------
-        Shader node_shader = Shader("shaders\\node.vert", "shaders\\node.frag");
+        Shader node_shader = Shader(MILT_WINDOWS("shaders\\node.vert", "shaders\\node.frag")
+                                    MILT_LINUX("shaders/node.vert", "shaders/node.frag"));
         node_shader.use();
         node_shader.setVec4("NodeColor", 0.9f, 0.8f, 0.5f, 1.0f);
 
@@ -97,8 +100,11 @@ int main(){
         int opt_rounds = 100;
         int post_sdf_rounds = 6;
         int nearest_neighbours = 5;
+        int force_factor = 10;
         bool is_generating = false;
         bool is_optimizing = false;
+        bool has_optimized = false;
+        double optimization_time;
 
         auto oct = new Octree<f_type>(center_point, halfway);
         oct->addNodes(nodes, node_count);
@@ -163,8 +169,9 @@ int main(){
                 ImGui::Begin("Rendering");
                 if (ImGui::Button("Generate Nodes")) {
                     if (!is_generating && !is_optimizing) {
-                        std::thread([&nodes, new_node_count, seed, &is_generating, &node_count, &oct, minval, maxval]() {
+                        std::thread([&nodes, new_node_count, seed, &is_generating, &node_count, &oct, minval, maxval, &has_optimized]() {
                             is_generating = true;
+                            has_optimized = false;
                             Node<f_type> *new_nodes = getRandomNodes(new_node_count, minval, maxval, seed);
                             delete[] nodes;
                             oct->reset();
@@ -179,11 +186,17 @@ int main(){
                 if (ImGui::Button("Optimize Nodes")) {
                     if (!is_generating && !is_optimizing) {
                         std::thread(
-                                [active_scene, &oct, nodes, node_count, opt_rounds, sdf_rounds, post_sdf_rounds, nearest_neighbours, &is_optimizing]() {
+                                [active_scene, &oct, nodes, node_count, opt_rounds, sdf_rounds, post_sdf_rounds, nearest_neighbours, &is_optimizing, &force_factor, &has_optimized, &optimization_time]() {
                                     is_optimizing = true;
-                                    node_optimization(active_scene, oct, nodes, node_count, opt_rounds, sdf_rounds, post_sdf_rounds,
-                                                      nearest_neighbours);
+                                    auto start_time = std::chrono::high_resolution_clock::now();
+                                    node_optimization(active_scene, oct, nodes, node_count, opt_rounds, sdf_rounds,
+                                                      post_sdf_rounds,
+                                                      nearest_neighbours, force_factor);
+                                    auto end_time = std::chrono::high_resolution_clock::now();
                                     is_optimizing = false;
+                                    has_optimized = true;
+                                    optimization_time = (end_time - start_time).count() / 1000000000.0;
+
                                 }).detach();
                     }
                 }
@@ -193,9 +206,12 @@ int main(){
                 ImGui::InputInt("Post-Sdf Rounds", &post_sdf_rounds);
                 ImGui::InputInt("Optimization Rounds", &opt_rounds);
                 ImGui::InputInt("Nearest Neighbours", &nearest_neighbours);
+                ImGui::InputInt("Force Factor", &force_factor);
                 ImGui::Combo("Rendering Mode", &current_render_mode, "Points\0Lines\0Fill");
                 ImGui::Text("%s: %d", "Current Node Count: ", node_count);
                 ImGui::Text("%s", is_generating ? "Is Generating..." : (is_optimizing ? "Is Optimizing..." : ""));
+                if(has_optimized)
+                    ImGui::Text("Optimization Time: %.4f s", optimization_time);
 
                 glPolygonMode(GL_FRONT_AND_BACK,
                               (current_render_mode == 0 ? GL_POINT : (current_render_mode == 1 ? GL_LINE : GL_FILL)));

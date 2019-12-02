@@ -7,16 +7,17 @@
 
 using f_type = float;
 
-#include "ext/imgui/imgui_user.h"
+#include "milt_macro.h"
+#include "imgui_user.h"
 #include "GL/glew.h"
 #include "octree.h"
 #include "sample_scene.h"
 #include <thread>
-#if defined(LINUX)
+#if defined(__linux__)
 #include "GL/glxew.h"
     #define GLFW_EXPOSE_NATIVE_X11
     #define GLFW_EXPOSE_NATIVE_GLX
-#elseif defined(MSVC)
+#elif defined(MSVC)
     #include "GL/wglew.h"
     #define GLFW_EXPOSE_NATIVE_WIN32
     #define GLFW_EXPOSE_NATIVE_WGL
@@ -31,8 +32,8 @@ using f_type = float;
 #include "GLFW/glfw3native.h"
 
 #include <cstdio>
-#include "ext/camera.h"
-#include "ext/shader.h"
+#include "camera.h"
+#include "shader.h"
 #include "gl_version.h"
 #include <exception>
 #include <imgui.h>

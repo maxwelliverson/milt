@@ -37,6 +37,15 @@ struct Node
 };
 
 template <typename T>
+Node<T> operator +(const Node<T>* a, Node<T> b);
+template <typename T>
+Node<T> operator +(Node<T> a, Node<T> b);
+template <typename T>
+Node<T> operator -(const Node<T>* a, Node<T> b);
+template <typename T>
+Node<T> operator -(Node<T> a, Node<T> b);
+
+template <typename T>
 Node<T> operator *(const Node<T>* a, T k);
 template <typename T>
 Node<T> operator *(Node<T> a, T k);
@@ -89,6 +98,26 @@ Node<T> operator *(T k, Node<T> a){
 template <typename T>
 Node<T> operator *(Node<T> a, T k){
     return k * a;
+}
+
+template <typename T>
+Node<T> operator +(const Node<T>* a, Node<T> b){
+    return Node(a->x + b.x, a->y + b.y, a->z + b.z);
+}
+
+template <typename T>
+Node<T> operator +(Node<T> a, Node<T> b){
+    return Node(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+template <typename T>
+Node<T> operator -(const Node<T>* a, Node<T> b){
+    return Node(a->x - b.x, a->y - b.y, a->z - b.z);
+}
+
+template <typename T>
+Node<T> operator -(Node<T> a, Node<T> b){
+    return Node(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
 template <typename T>
@@ -157,6 +186,10 @@ template <typename T>
 T dist_squared(Node<T>* n1, Node<T>* n2) {
     return ((n1->x - n2->x) * (n1->x - n2->x) + (n1->y - n2->y) * (n1->y - n2->y) + (n1->z - n2->z) * (n1->z - n2->z));
 }
+template <typename T>
+T dist(Node<T>* n1, Node<T>* n2){
+    return sqrt(dist_squared(n1, n2));
+}
 
 template <typename T>
 T Node<T>::norm() const {
@@ -169,11 +202,13 @@ T Node<T>::norm_squared() const {
 }
 
 template <typename T>
-void normalize(Node<T>* n) {
+Node<T>& normalize(Node<T>* n) {
     T norm_inv = (T)1 / n->norm();
     n->x *= norm_inv;
     n->y *= norm_inv;
     n->z *= norm_inv;
+
+    return *n;
 }
 
 #endif //MILT_NODE_H

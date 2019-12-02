@@ -111,7 +111,7 @@ template <typename T, int N>
 bool Octree<T, N>::remove(Node<T>* val) {
     if (node_count > overflow_lim) {
         bool success = branches[(int)get_index(val)]->remove(val);
-        if (node_count == overflow_lim) {
+        if (node_count == overflow_lim + 1) {
             int k;
             values = getNodes(k);
             for (int i = 0; i < 8; ++i) {
@@ -120,7 +120,7 @@ bool Octree<T, N>::remove(Node<T>* val) {
             delete[] branches;
             branches = nullptr;
         }
-		return success;
+		return success && --node_count;
     }
     else {
         unsigned i;
@@ -225,6 +225,7 @@ Node<T>** Octree<T, N>::getNodes(int &n) {
                 node_list[i] = sub_nodes[k];
                 i += 1;
             }
+            delete[] sub_nodes;
         }
     }
     else {
@@ -281,7 +282,7 @@ void Octree<T, N>::subdivide() {
 
 template <typename T, int N>
 void Octree<T, N>::addToArr(Node<T>** nodes, Node<T>* new_node, Node<T>* ref, T& max_dist, int& max_ind, int n, int& curr_n) {
-    if (curr_n < n) {
+    if (curr_n < n && new_node != ref) {
         nodes[curr_n] = new_node;
         T d_s = dist_squared(new_node, ref);
         if (d_s > max_dist) {
@@ -292,8 +293,7 @@ void Octree<T, N>::addToArr(Node<T>** nodes, Node<T>* new_node, Node<T>* ref, T&
         return;
     }
     else {
-
-        if (dist_squared(new_node, ref) < max_dist) {
+        if (dist_squared(new_node, ref) < max_dist && new_node != ref) {
             nodes[max_ind] = new_node;
             max_dist = dist_squared(new_node, ref);
             for (int i = 0; i < curr_n; i++) {
